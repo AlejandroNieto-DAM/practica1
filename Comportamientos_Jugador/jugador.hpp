@@ -31,6 +31,7 @@ class ComportamientoJugador : public Comportamiento {
       positionToGo.first = -1;
       positionToGo.second = -1;
       accionesMuro = 0;
+      giro = 0;
 
     }
 
@@ -64,6 +65,7 @@ class ComportamientoJugador : public Comportamiento {
   vector<vector<bool>> casillasUsadas;
   int filM, colM;
   int util;
+  int giro;
   pair<int, int> positionToGo;
 
 };
