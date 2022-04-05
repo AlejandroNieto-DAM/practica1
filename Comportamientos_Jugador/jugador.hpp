@@ -16,22 +16,20 @@ class ComportamientoJugador : public Comportamiento {
       // Constructor de la clase
       // Dar el valor inicial a las variables de estado
       fil = col = 99;
-      filM = colM = 0;
+      
       brujula = 0;
       ultimaAccion = actIDLE;
       bienSituado = false;
+      choque = false;
       bikiniOn = false;
       recarga = false;
       zapatillasOn = false;
-      girar_izquierda = girar_derecha = false;
-      contadorTriangulos = 0;
-      canPuntuaciones = false;
-      inicializarValoresCasillas();
-      util = 0;
+    
       positionToGo.first = -1;
       positionToGo.second = -1;
       accionesMuro = 0;
       giro = 0;
+      filp = colp = 99;
 
     }
 
@@ -39,32 +37,22 @@ class ComportamientoJugador : public Comportamiento {
     ~ComportamientoJugador(){}
 
     Action think(Sensores sensores);
-    void inicializarValoresCasillas();
     void rellenarVisionCompleta(Sensores sensores);
-    void rellenarMemoria(Sensores sensores);
     void findPosition(int i);
     pair<int, int> getPos(int i);
-    void calculoTriangulo(Sensores sensores);
     int interact(Action accion, int valor);
 
-    void actualizarBrujulaPosicion();
-
+    void actualizarBrujulaPosicion(Sensores sensores);
+    void actualizarPosicion();
   private:
   
   // Declarar aquí las variables de estado
-  int fil, col, brujula;
+  int fil, col, brujula, filp, colp;
   Action ultimaAccion;
-  bool bienSituado, bikiniOn, zapatillasOn, recarga;
-  bool girar_derecha, girar_izquierda, canPuntuaciones;
+  bool bienSituado, bikiniOn, zapatillasOn, recarga, choque;
   vector<Action> acciones;
   map<char, int> valoresCasillas;
-  vector<int> puntuaciones;
-  int contadorTriangulos;
   int accionesMuro;
-  vector<vector<pair<char, bool>>> memory;
-  vector<vector<bool>> casillasUsadas;
-  int filM, colM;
-  int util;
   int giro;
   pair<int, int> positionToGo;
 

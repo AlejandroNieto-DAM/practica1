@@ -2,25 +2,6 @@
 #include <iostream>
 using namespace std;
 
-void ComportamientoJugador::inicializarValoresCasillas()
-{
-	valoresCasillas['A'] = 15;
-	valoresCasillas['B'] = 5;
-	valoresCasillas['T'] = 74;
-	valoresCasillas['S'] = 75;
-	valoresCasillas['M'] = -10000;
-	valoresCasillas['P'] = -1000;
-
-	valoresCasillas['G'] = 100;
-	valoresCasillas['K'] = 50;
-	valoresCasillas['D'] = 50;
-	valoresCasillas['X'] = 100;
-}
-
-void ComportamientoJugador::rellenarMemoria(Sensores sensores)
-{
-}
-
 void ComportamientoJugador::rellenarVisionCompleta(Sensores sensores)
 {
 	mapaResultado[fil][col] = sensores.terreno[0];
@@ -102,19 +83,6 @@ void ComportamientoJugador::rellenarVisionCompleta(Sensores sensores)
 		}
 		break;
 	}
-}
-
-void ComportamientoJugador::calculoTriangulo(Sensores sensores)
-{
-	int sumatoriaTriangulo = 0;
-	for (int i = 0; i < sensores.terreno.size(); i++)
-	{
-
-		sumatoriaTriangulo += valoresCasillas[sensores.terreno[i]];
-	}
-
-	cout << "Puntuacion triangulo = " << sumatoriaTriangulo << endl;
-	puntuaciones.push_back(sumatoriaTriangulo);
 }
 
 pair<int, int> ComportamientoJugador::getPos(int i)
@@ -218,27 +186,10 @@ void ComportamientoJugador::findPosition(int i)
 	}
 }
 
-void ComportamientoJugador::actualizarBrujulaPosicion()
+void ComportamientoJugador::actualizarBrujulaPosicion(Sensores sensores)
 {
 	switch (ultimaAccion)
 	{
-	case actFORWARD:
-		switch (brujula)
-		{
-		case 0:
-			fil--;
-			break;
-		case 1:
-			col++;
-			break;
-		case 2:
-			fil++;
-			break;
-		case 3:
-			col--;
-			break;
-		}
-		break;
 	case actTURN_L:
 		brujula = (brujula + 3) % 4;
 		break;
@@ -248,52 +199,92 @@ void ComportamientoJugador::actualizarBrujulaPosicion()
 	}
 }
 
+void ComportamientoJugador::actualizarPosicion()
+{
+
+	if (ultimaAccion == actFORWARD)
+	{
+		switch (brujula)
+		{
+		case 0:
+			filp--;
+			break;
+		case 1:
+			colp++;
+			break;
+		case 2:
+			filp++;
+			break;
+		case 3:
+			colp--;
+			break;
+		}
+	}
+}
+
 Action ComportamientoJugador::think(Sensores sensores)
 {
 
 	Action accion = actIDLE;
 
-	if (sensores.nivel == 1 || sensores.nivel == 2)
+	if (sensores.nivel < 1)
 	{
-		this->actualizarBrujulaPosicion();
+		bienSituado = true;
+		fil = sensores.posF;
+		col = sensores.posC;
 	}
 
-	if(acciones.empty()){
+	if (sensores.nivel < 2)
+	{
+		brujula = sensores.sentido;
+	}
 
 	
-		for (int i = 0; i < sensores.terreno.size(); i++)
+	this->actualizarBrujulaPosicion(sensores);
+	
+	
+
+	if (sensores.colision == false)
+	{
+		this->actualizarPosicion();
+	}
+
+	cout << "Sensores buenos: " << sensores.posF << " " << sensores.posC << endl;
+	cout << "Sensores malos: " << filp << " " << colp << endl;
+
+	for (int i = 0; i < sensores.terreno.size(); i++)
+	{
+
+		if (sensores.terreno[i] == 'G' && !bienSituado && i != 0)
 		{
-
-			if (sensores.terreno[i] == 'G' && !bienSituado && i != 0)
+			acciones.clear();
+			findPosition(i);
+		}
+		else if (sensores.terreno[i] == 'X' && i != 0 && sensores.bateria < 2500)
+		{
+			acciones.clear();
+			findPosition(i);
+			int timeIdle = 20;
+			for (int i = 0; i < timeIdle; i++)
 			{
-				findPosition(i);
-			}
-			else if (sensores.terreno[i] == 'X' && i != 0 && sensores.bateria < 2500)
-			{
-
-				findPosition(i);
-				int timeIdle = 20;
-				for (int i = 0; i < timeIdle; i++)
-				{
-					acciones.push_back(actIDLE);
-				}
-			}
-			else if (sensores.terreno[i] == 'K' && !bikiniOn && i != 0)
-			{
-				findPosition(i);
-			}
-			else if (sensores.terreno[i] == 'D' && !zapatillasOn && i != 0)
-			{
-				findPosition(i);
+				acciones.push_back(actIDLE);
 			}
 		}
-
+		else if (sensores.terreno[i] == 'K' && !bikiniOn && i != 0)
+		{
+			acciones.clear();
+			findPosition(i);
+		}
+		else if (sensores.terreno[i] == 'D' && !zapatillasOn && i != 0)
+		{
+			acciones.clear();
+			findPosition(i);
+		}
 	}
 
 	if (acciones.empty())
 	{
 		cout << "Entro a buscar accion" << endl;
-		
 
 		if (bienSituado && acciones.empty())
 		{
@@ -316,9 +307,8 @@ Action ComportamientoJugador::think(Sensores sensores)
 						}
 					}
 				}
-				
-				cout << "Position to go: " << positionToGo.first << " " << positionToGo.second << endl;
 
+				cout << "Position to go: " << positionToGo.first << " " << positionToGo.second << endl;
 
 				if (positionToGo.first < fil)
 				{
@@ -400,8 +390,10 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.first < fil){
-					
+				}
+				else if (positionToGo.first < fil)
+				{
+
 					acciones.push_back(actTURN_R);
 					acciones.push_back(actTURN_R);
 
@@ -410,7 +402,6 @@ Action ComportamientoJugador::think(Sensores sensores)
 						acciones.push_back(actFORWARD);
 					}
 				}
-		
 
 				if (positionToGo.second > col and positionToGo.first > fil)
 				{
@@ -429,22 +420,24 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.second > col and positionToGo.first < fil){
-					
+				}
+				else if (positionToGo.second > col and positionToGo.first < fil)
+				{
+
 					acciones.push_back(actTURN_R);
 					for (int i = 0; i < (positionToGo.second - col); i++)
 					{
 						acciones.push_back(actFORWARD);
 					}
-					
-				} else if(positionToGo.second < col and positionToGo.first < fil){
+				}
+				else if (positionToGo.second < col and positionToGo.first < fil)
+				{
 					acciones.push_back(actTURN_L);
 					for (int i = 0; i < (col - positionToGo.second); i++)
 					{
 						acciones.push_back(actFORWARD);
 					}
 				}
-
 
 				break;
 
@@ -470,8 +463,10 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.second < col){
-					
+				}
+				else if (positionToGo.second < col)
+				{
+
 					acciones.push_back(actTURN_R);
 					acciones.push_back(actTURN_R);
 
@@ -480,7 +475,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 						acciones.push_back(actFORWARD);
 					}
 				}
-			
+
 				if (positionToGo.first > fil && positionToGo.second > col)
 				{
 
@@ -498,13 +493,17 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.first > fil && positionToGo.second < col){
+				}
+				else if (positionToGo.first > fil && positionToGo.second < col)
+				{
 					acciones.push_back(actTURN_L);
 					for (int i = 0; i < (fil - positionToGo.first); i++)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.first < fil && positionToGo.second < col){
+				}
+				else if (positionToGo.first < fil && positionToGo.second < col)
+				{
 					acciones.push_back(actTURN_R);
 					for (int i = 0; i < (positionToGo.first - fil); i++)
 					{
@@ -516,7 +515,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 			case 3:
 
-				for (int i =  0; i < mapaResultado.size() and encontrado == false; i++)
+				for (int i = 0; i < mapaResultado.size() and encontrado == false; i++)
 				{
 					for (int j = mapaResultado.size() - 1; j > 0 and encontrado == false; j--)
 					{
@@ -536,8 +535,10 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.second > col){
-					
+				}
+				else if (positionToGo.second > col)
+				{
+
 					acciones.push_back(actTURN_R);
 					acciones.push_back(actTURN_R);
 
@@ -546,7 +547,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 						acciones.push_back(actFORWARD);
 					}
 				}
-			
+
 				if (positionToGo.first < fil && positionToGo.second < col)
 				{
 
@@ -563,13 +564,17 @@ Action ComportamientoJugador::think(Sensores sensores)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.first > fil && positionToGo.second > col){
+				}
+				else if (positionToGo.first > fil && positionToGo.second > col)
+				{
 					acciones.push_back(actTURN_R);
 					for (int i = 0; i < (fil - positionToGo.first); i++)
 					{
 						acciones.push_back(actFORWARD);
 					}
-				} else if(positionToGo.first < fil && positionToGo.second > col){
+				}
+				else if (positionToGo.first < fil && positionToGo.second > col)
+				{
 					acciones.push_back(actTURN_L);
 					for (int i = 0; i < (positionToGo.first - fil); i++)
 					{
@@ -579,17 +584,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 				break;
 			}
-
-			
 		}
-	}
-
-	if (sensores.nivel < 2)
-	{
-		bienSituado = true;
-		fil = sensores.posF;
-		col = sensores.posC;
-		brujula = sensores.sentido;
 	}
 
 	// G es la casilla celeste las cuales si se saben donde se situan en el mapa
@@ -597,6 +592,8 @@ Action ComportamientoJugador::think(Sensores sensores)
 	{
 		fil = sensores.posF;
 		col = sensores.posC;
+		filp = sensores.posF;
+		colp = sensores.posC;
 		bienSituado = true;
 	}
 
@@ -612,11 +609,12 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 	if (bienSituado)
 	{
+		fil = filp;
+		col = colp;
 		rellenarVisionCompleta(sensores);
 	}
 
 	cout << "Position to go fuera: " << positionToGo.first << " " << positionToGo.second << endl;
- 
 
 	if (positionToGo.first != -1 and positionToGo.second != -1 and mapaResultado[positionToGo.first][positionToGo.second] != '?')
 	{
@@ -628,7 +626,6 @@ Action ComportamientoJugador::think(Sensores sensores)
 	cout << "Sensores terreno 2: " << sensores.terreno[2] << endl;
 	cout << "Sensores terreno 1: " << sensores.terreno[1] << endl;
 	cout << "Giro " << giro << endl;
-	
 
 	/*if	(sensores.terreno[2] != 'S' and sensores.terreno[1] == 'S' and giro <= 0){
 		cout << "Hola toy en lo nuevo pa la izq" << endl;
@@ -654,54 +651,90 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 	if (sensores.terreno[2] == 'P' and acciones.front() == actFORWARD and !acciones.empty() and (ultimaAccion != actTURN_L || ultimaAccion != actTURN_R))
 	{
-		while(acciones.front() == actFORWARD and !acciones.empty()){
-			//cout << "Entrobucle" << endl;
+		while (acciones.front() == actFORWARD and !acciones.empty())
+		{
+			// cout << "Entrobucle" << endl;
 			acciones.erase(acciones.begin());
 			cout << acciones.front() << endl;
 		}
-		//cout << "Salgobucle" << endl;
+
+		choque = true;
+		// cout << "Salgobucle" << endl;
 	}
 
-	cout << "Accion ? " << acciones.front() << " " << acciones.empty() << endl;
-
-	
-
-	if (sensores.terreno[2] == 'M' )
+	if (sensores.terreno[2] == 'M' && accionesMuro <= 0)
 	{
-		cout << "entro" << endl;
-		acciones.insert(acciones.begin(), actTURN_R);
-		acciones.insert(acciones.begin(), actFORWARD);
-		acciones.insert(acciones.begin(), actTURN_L);
+		choque = true;
+
+		accionesMuro = 3;
+		if (sensores.terreno[1] != 'M')
+		{
+			cout << "Distinto M" << endl;
+			acciones.insert(acciones.begin(), actTURN_R);
+			acciones.insert(acciones.begin(), actFORWARD);
+			acciones.insert(acciones.begin(), actTURN_L);
+			// acciones.insert(acciones.begin(), actIDLE);
+		}
+		else
+		{
+			acciones.insert(acciones.begin(), actTURN_L);
+			acciones.insert(acciones.begin(), actFORWARD);
+			acciones.insert(acciones.begin(), actTURN_R);
+		}
+	}
+	else if (sensores.terreno[2] == 'M' && accionesMuro > 0)
+	{
+		choque = true;
+
+		accionesMuro = 3;
+		if (sensores.terreno[1] != 'M')
+		{
+			cout << "Distinto M" << endl;
+			acciones.erase(acciones.begin());
+			acciones.insert(acciones.begin(), actTURN_R);
+			acciones.insert(acciones.begin(), actFORWARD);
+			acciones.insert(acciones.begin(), actTURN_L);
+			// acciones.insert(acciones.begin(), actIDLE);
+		}
+		else
+		{
+			acciones.erase(acciones.begin());
+			acciones.insert(acciones.begin(), actTURN_L);
+			acciones.insert(acciones.begin(), actFORWARD);
+			acciones.insert(acciones.begin(), actTURN_R);
+		}
+	}
+
+	else
+	{
+		accionesMuro--;
 	}
 
 	if (acciones.empty() and giro <= 0)
 	{
 
-		if(sensores.terreno[2] != 'P' and sensores.terreno[2] != 'M'){
+		if (sensores.terreno[2] != 'P' and sensores.terreno[2] != 'M')
+		{
 
 			if (sensores.terreno[2] == 'K' or sensores.terreno[2] == 'D' or sensores.terreno[2] == 'G' or sensores.terreno[2] == 'S' or sensores.terreno[2] == 'T' and sensores.superficie[2] == '_')
 			{
 				acciones.push_back(actFORWARD);
-				util--;
 			}
 			else if ((bikiniOn and sensores.terreno[2] == 'A') or (zapatillasOn and sensores.terreno[2] == 'B'))
 			{
 				acciones.push_back(actFORWARD);
-				util--;
 			}
 			else if ((!bikiniOn and sensores.terreno[2] == 'A') or (!zapatillasOn and sensores.terreno[2] == 'B'))
 			{
-				
-				util--;
 			}
-		} else {
-			acciones.push_back(actIDLE);
 		}
-		
+		else
+		{
+			acciones.push_back(actTURN_R);
+		}
 	}
 
 	cout << "Accion realizada " << acciones.front() << endl;
-
 
 	accion = acciones.front();
 	acciones.erase(acciones.begin());
