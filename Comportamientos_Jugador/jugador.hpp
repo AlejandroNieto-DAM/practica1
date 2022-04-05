@@ -42,7 +42,7 @@ class ComportamientoJugador : public Comportamiento {
     pair<int, int> getPos(int i);
     int interact(Action accion, int valor);
 
-    void actualizarBrujulaPosicion(Sensores sensores);
+    void actualizarBrujulaPosicion();
     void actualizarPosicion();
   private:
   

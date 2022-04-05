@@ -186,7 +186,7 @@ void ComportamientoJugador::findPosition(int i)
 	}
 }
 
-void ComportamientoJugador::actualizarBrujulaPosicion(Sensores sensores)
+void ComportamientoJugador::actualizarBrujulaPosicion()
 {
 	switch (ultimaAccion)
 	{
@@ -207,16 +207,16 @@ void ComportamientoJugador::actualizarPosicion()
 		switch (brujula)
 		{
 		case 0:
-			filp--;
+			fil--;
 			break;
 		case 1:
-			colp++;
+			col++;
 			break;
 		case 2:
-			filp++;
+			fil++;
 			break;
 		case 3:
-			colp--;
+			col--;
 			break;
 		}
 	}
@@ -230,27 +230,45 @@ Action ComportamientoJugador::think(Sensores sensores)
 	if (sensores.nivel < 1)
 	{
 		bienSituado = true;
-		fil = sensores.posF;
-		col = sensores.posC;
+		filp = fil = sensores.posF;
+		colp = col = sensores.posC;
 	}
 
 	if (sensores.nivel < 2)
 	{
 		brujula = sensores.sentido;
+	} else {
+		this->actualizarBrujulaPosicion();
 	}
 
-	
-	this->actualizarBrujulaPosicion(sensores);
-	
-	
-
-	if (sensores.colision == false)
+	if (sensores.colision == false && sensores.nivel > 0)
 	{
 		this->actualizarPosicion();
 	}
 
-	cout << "Sensores buenos: " << sensores.posF << " " << sensores.posC << endl;
-	cout << "Sensores malos: " << filp << " " << colp << endl;
+
+	if (positionToGo.first != -1 and positionToGo.second != -1 and mapaResultado[positionToGo.first][positionToGo.second] != '?')
+	{
+		acciones.clear();
+		positionToGo.first = -1;
+		positionToGo.second = -1;
+	}
+
+	if (sensores.terreno[0] == 'K' && !bikiniOn)
+	{
+		bikiniOn = true;
+	}
+
+	if (sensores.terreno[0] == 'D' && !zapatillasOn)
+	{
+		zapatillasOn = true;
+	}
+
+	cout << flush;
+
+	//cout << "Sensores " << sensores.posF << " " << sensores.posC << endl;
+	cout << "fil, col " << fil << " " << col << endl;
+	cout << "bru " << brujula << " " << sensores.sentido <<  endl;
 
 	for (int i = 0; i < sensores.terreno.size(); i++)
 	{
@@ -282,7 +300,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 		}
 	}
 
-	if (acciones.empty())
+	if (acciones.empty() && bienSituado)
 	{
 		cout << "Entro a buscar accion" << endl;
 
@@ -371,7 +389,7 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 				for (int i = mapaResultado.size() - 1; i >= 0 and encontrado == false; i--)
 				{
-					for (int j = mapaResultado.size() - 1; j >= 0 and encontrado == false; j--)
+					for (int j = 0; j < mapaResultado.size() and encontrado == false; j++)
 					{
 						if (mapaResultado[i][j] == '?')
 						{
@@ -587,70 +605,26 @@ Action ComportamientoJugador::think(Sensores sensores)
 		}
 	}
 
+	cout << "Position to go " << positionToGo.first << " " << positionToGo.second << endl;
+
 	// G es la casilla celeste las cuales si se saben donde se situan en el mapa
 	if (sensores.terreno[0] == 'G' && !bienSituado)
 	{
 		fil = sensores.posF;
 		col = sensores.posC;
-		filp = sensores.posF;
-		colp = sensores.posC;
 		bienSituado = true;
 	}
 
-	if (sensores.terreno[0] == 'K' && !bikiniOn)
-	{
-		bikiniOn = true;
-	}
-
-	if (sensores.terreno[0] == 'D' && !zapatillasOn)
-	{
-		zapatillasOn = true;
-	}
 
 	if (bienSituado)
 	{
-		fil = filp;
-		col = colp;
 		rellenarVisionCompleta(sensores);
 	}
 
-	cout << "Position to go fuera: " << positionToGo.first << " " << positionToGo.second << endl;
-
-	if (positionToGo.first != -1 and positionToGo.second != -1 and mapaResultado[positionToGo.first][positionToGo.second] != '?')
+	if (sensores.terreno[2] == 'P' and acciones.front() == actFORWARD and !acciones.empty())
 	{
-		acciones.clear();
-		positionToGo.first = -1;
-		positionToGo.second = -1;
-	}
 
-	cout << "Sensores terreno 2: " << sensores.terreno[2] << endl;
-	cout << "Sensores terreno 1: " << sensores.terreno[1] << endl;
-	cout << "Giro " << giro << endl;
-
-	/*if	(sensores.terreno[2] != 'S' and sensores.terreno[1] == 'S' and giro <= 0){
-		cout << "Hola toy en lo nuevo pa la izq" << endl;
-		acciones.erase(acciones.begin());
-		acciones.insert(acciones.begin(), actTURN_L);
-		acciones.insert(acciones.begin(), actFORWARD);
-		acciones.insert(acciones.begin(), actTURN_R);
-		acciones.insert(acciones.begin(), actFORWARD);
-		acciones.insert(acciones.end(), actFORWARD);
-		giro = 4;
-	} else if(sensores.terreno[2] != 'S' and sensores.terreno[3] == 'S' and giro <= 0){
-		cout << "Hola toy en lo nuevo pa la derecha" << endl;
-		acciones.erase(acciones.begin());
-		acciones.insert(acciones.begin(), actTURN_R);
-		acciones.insert(acciones.begin(), actFORWARD);
-		acciones.insert(acciones.begin(), actTURN_L);
-		acciones.insert(acciones.begin(), actFORWARD);
-		acciones.insert(acciones.begin(), actFORWARD);
-		giro = 4;
-	} else {
-		giro--;
-	}*/
-
-	if (sensores.terreno[2] == 'P' and acciones.front() == actFORWARD and !acciones.empty() and (ultimaAccion != actTURN_L || ultimaAccion != actTURN_R))
-	{
+		cout << "Entro aqui sin motivo?" << endl;
 		while (acciones.front() == actFORWARD and !acciones.empty())
 		{
 			// cout << "Entrobucle" << endl;
@@ -664,8 +638,6 @@ Action ComportamientoJugador::think(Sensores sensores)
 
 	if (sensores.terreno[2] == 'M' && accionesMuro <= 0)
 	{
-		choque = true;
-
 		accionesMuro = 3;
 		if (sensores.terreno[1] != 'M')
 		{
@@ -690,7 +662,10 @@ Action ComportamientoJugador::think(Sensores sensores)
 		if (sensores.terreno[1] != 'M')
 		{
 			cout << "Distinto M" << endl;
-			acciones.erase(acciones.begin());
+			if(!acciones.empty()){
+				acciones.erase(acciones.begin());
+			}
+			
 			acciones.insert(acciones.begin(), actTURN_R);
 			acciones.insert(acciones.begin(), actFORWARD);
 			acciones.insert(acciones.begin(), actTURN_L);
@@ -698,7 +673,9 @@ Action ComportamientoJugador::think(Sensores sensores)
 		}
 		else
 		{
-			acciones.erase(acciones.begin());
+			if(!acciones.empty()){
+				acciones.erase(acciones.begin());
+			}
 			acciones.insert(acciones.begin(), actTURN_L);
 			acciones.insert(acciones.begin(), actFORWARD);
 			acciones.insert(acciones.begin(), actTURN_R);
@@ -710,7 +687,9 @@ Action ComportamientoJugador::think(Sensores sensores)
 		accionesMuro--;
 	}
 
-	if (acciones.empty() and giro <= 0)
+	cout << "Fuera accinoes muro" << endl;
+
+	if (acciones.empty())
 	{
 
 		if (sensores.terreno[2] != 'P' and sensores.terreno[2] != 'M')
@@ -726,6 +705,9 @@ Action ComportamientoJugador::think(Sensores sensores)
 			}
 			else if ((!bikiniOn and sensores.terreno[2] == 'A') or (!zapatillasOn and sensores.terreno[2] == 'B'))
 			{
+				acciones.push_back(actTURN_R);
+				acciones.push_back(actFORWARD);
+				acciones.push_back(actTURN_L);
 			}
 		}
 		else
